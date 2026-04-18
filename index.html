@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Rehactiva — Terapeutas</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231D9E75'/><text y='72' x='50' text-anchor='middle' font-size='60' font-family='Arial' fill='white'>⚕</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --green: #1D9E75;
+    --green-light: rgba(29,158,117,.12);
+    --red: #E24B4A;
+    --orange: #BA7517;
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --text: #1a1917;
+    --sub: #6b6a64;
+    --border: rgba(0,0,0,.08);
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* LOGIN */
+  .login-wrap {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0d2b1f 0%, #1a4a32 50%, #0d2b1f 100%);
+    padding: 20px;
+  }
+  .login-card {
+    background: #fff;
+    border-radius: 24px;
+    padding: 40px 32px;
+    width: 100%;
+    max-width: 360px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.2);
+  }
+  .login-logo {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .login-logo .icon {
+    width: 64px; height: 64px;
+    background: var(--green);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 12px;
+    font-size: 32px;
+  }
+  .login-logo h1 { font-family: Manrope; font-size: 22px; font-weight: 800; color: #1a1917; }
+  .login-logo p { font-size: 13px; color: var(--sub); margin-top: 3px; }
+  .login-field { margin-bottom: 14px; }
+  .login-field label { font-size: 11px; font-weight: 600; color: var(--sub); text-transform: uppercase; letter-spacing: .05em; display: block; margin-bottom: 6px; }
+  .login-field input {
+    width: 100%; padding: 12px 14px;
+    background: #f5f6f8; border: 2px solid transparent;
+    border-radius: 10px; font-size: 14px; color: var(--text);
+    font-family: inherit; outline: none; transition: border .2s;
+  }
+  .login-field input:focus { border-color: var(--green); background: #fff; }
+  .login-btn {
+    width: 100%; padding: 14px;
+    background: var(--green); color: #fff;
+    border: none; border-radius: 10px;
+    font-size: 15px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+    transition: opacity .2s; margin-top: 6px;
+  }
+  .login-btn:hover { opacity: .9; }
+  .login-err { font-size: 12px; color: var(--red); text-align: center; margin-top: 10px; min-height: 16px; }
+
+  /* MAIN APP */
+  .app { display: none; flex-direction: column; min-height: 100vh; }
+  .app.active { display: flex; }
+
+  /* TOP BAR */
+  .topbar {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 1px 8px rgba(0,0,0,.06);
+  }
+  .topbar-left { display: flex; align-items: center; gap: 10px; }
+  .topbar-logo { font-family: Manrope; font-weight: 800; font-size: 18px; color: var(--green); }
+  .topbar-badge {
+    background: var(--green-light); color: var(--green);
+    font-size: 11px; font-weight: 700;
+    padding: 3px 10px; border-radius: 99px;
+  }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .therapist-avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: var(--green); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px; font-family: Manrope;
+    cursor: pointer;
+  }
+  .logout-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--sub); display: flex; align-items: center;
+    padding: 6px; border-radius: 8px;
+    transition: background .2s;
+  }
+  .logout-btn:hover { background: #f5f6f8; }
+
+  /* CONTENT */
+  .content { flex: 1; padding: 20px 16px 100px; max-width: 600px; margin: 0 auto; width: 100%; }
+
+  /* DATE NAV */
+  .date-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #fff; border-radius: var(--radius);
+    padding: 14px 18px; margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  }
+  .date-nav-btn {
+    background: var(--bg); border: none; cursor: pointer;
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text); transition: background .2s;
+  }
+  .date-nav-btn:hover { background: var(--green-light); color: var(--green); }
+  .date-nav-btn:disabled { opacity: .3; cursor: not-allowed; }
+  .date-nav-center { text-align: center; }
+  .date-nav-day { font-family: Manrope; font-size: 18px; font-weight: 800; color: var(--text); }
+  .date-nav-full { font-size: 12px; color: var(--sub); margin-top: 1px; }
+  .today-btn {
+    background: var(--green-light); color: var(--green);
+    border: none; border-radius: 8px; padding: 4px 10px;
+    font-size: 11px; font-weight: 700; cursor: pointer;
+    font-family: inherit;
+  }
+
+  /* STATS ROW */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(3,1fr);
+    gap: 10px; margin-bottom: 16px;
+  }
+  .stat-card {
+    background: #fff; border-radius: 14px;
+    padding: 14px 12px; text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,.05);
+  }
+  .stat-card .num { font-family: Manrope; font-size: 26px; font-weight: 800; }
+  .stat-card .lbl { font-size: 10px; color: var(--sub); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; margin-top: 2px; }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-size: 12px; font-weight: 700; color: var(--sub);
+    text-transform: uppercase; letter-spacing: .06em;
+    margin-bottom: 10px; padding-left: 2px;
+  }
+
+  /* CITA CARD */
+  .cita-card {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.05);
+    border-left: 4px solid var(--border);
+    transition: transform .15s, box-shadow .15s;
+  }
+  .cita-card:active { transform: scale(.99); }
+  .cita-card.conf { border-left-color: var(--green); }
+  .cita-card.pend { border-left-color: var(--orange); }
+  .cita-card.noas { border-left-color: var(--red); opacity: .7; }
+
+  .cita-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+  .cita-hora { font-family: Manrope; font-size: 22px; font-weight: 800; color: var(--text); }
+  .cita-type { font-size: 12px; color: var(--sub); margin-top: 1px; }
+  .status-pill {
+    font-size: 10px; font-weight: 700; padding: 4px 10px;
+    border-radius: 99px; white-space: nowrap;
+  }
+  .pill-conf { background: #dcfce7; color: #166534; }
+  .pill-pend { background: #fef3c7; color: #92400e; }
+  .pill-noas { background: #fee2e2; color: #991b1b; }
+
+  .cita-patient { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .patient-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: #e8f5f0; color: var(--green);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px; flex-shrink: 0;
+  }
+  .patient-name { font-size: 15px; font-weight: 700; color: var(--text); }
+  .patient-diag { font-size: 12px; color: var(--sub); margin-top: 1px; }
+
+  .cita-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn-action {
+    flex: 1; min-width: 80px;
+    padding: 10px 8px; border-radius: 10px;
+    border: none; cursor: pointer;
+    font-size: 12px; font-weight: 700;
+    font-family: inherit; display: flex;
+    align-items: center; justify-content: center; gap: 5px;
+    transition: opacity .2s;
+  }
+  .btn-action:active { opacity: .8; }
+  .btn-sesion-pendiente { background: #fff4e0; color: var(--orange); }
+  .btn-sesion-ok { background: #dcfce7; color: #166534; }
+  .btn-ciclo { background: var(--bg); color: var(--text); }
+  .btn-sesion-pendiente .material-symbols-outlined,
+  .btn-sesion-ok .material-symbols-outlined,
+  .btn-ciclo .material-symbols-outlined { font-size: 16px; }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center; padding: 48px 20px;
+    background: #fff; border-radius: var(--radius);
+    box-shadow: 0 2px 8px rgba(0,0,0,.05);
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; opacity: .3; }
+  .empty-state h3 { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .empty-state p { font-size: 13px; color: var(--sub); }
+
+  /* MODAL SESIÓN */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(0,0,0,.5);
+    display: flex; align-items: flex-end; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity .25s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal-sheet {
+    background: #fff;
+    border-radius: 24px 24px 0 0;
+    width: 100%; max-width: 600px;
+    padding: 20px 20px 40px;
+    transform: translateY(100%);
+    transition: transform .3s cubic-bezier(.32,.72,0,1);
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal-overlay.open .modal-sheet { transform: translateY(0); }
+  .modal-handle {
+    width: 40px; height: 4px;
+    background: #e0e0e0; border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+  .modal-title { font-family: Manrope; font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+  .modal-sub { font-size: 13px; color: var(--sub); margin-bottom: 20px; }
+
+  .eva-section { margin-bottom: 20px; }
+  .eva-label {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 8px;
+  }
+  .eva-label span:first-child { font-size: 13px; font-weight: 600; color: var(--text); }
+  .eva-value { font-family: Manrope; font-size: 28px; font-weight: 800; }
+  .eva-btns { display: flex; gap: 4px; }
+  .eva-btn {
+    flex: 1; padding: 10px 2px; border-radius: 8px;
+    border: 2px solid transparent; cursor: pointer;
+    font-size: 13px; font-weight: 600; font-family: inherit;
+    background: #f5f6f8; color: var(--sub);
+    transition: all .1s;
+  }
+  .eva-btn.selected-before { background: #fee2e2; color: var(--red); border-color: var(--red); }
+  .eva-btn.selected-after { background: #dcfce7; color: #166534; border-color: var(--green); }
+  .eva-hint { display: flex; justify-content: space-between; font-size: 10px; color: #aaa; margin-top: 4px; }
+
+  .field-group { margin-bottom: 16px; }
+  .field-group label { font-size: 11px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: .05em; display: block; margin-bottom: 6px; }
+  .field-group select, .field-group textarea {
+    width: 100%; padding: 12px 14px;
+    background: #f5f6f8; border: 2px solid transparent;
+    border-radius: 12px; font-size: 14px; color: var(--text);
+    font-family: inherit; outline: none; transition: border .2s;
+  }
+  .field-group select:focus, .field-group textarea:focus { border-color: var(--green); background: #fff; }
+  .field-group textarea { resize: vertical; min-height: 80px; }
+  .required-star { color: var(--red); }
+
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .btn-cancel-modal {
+    flex: 1; padding: 14px; border-radius: 12px;
+    background: #f5f6f8; color: var(--sub);
+    border: none; cursor: pointer; font-size: 14px; font-weight: 700; font-family: inherit;
+  }
+  .btn-save {
+    flex: 2; padding: 14px; border-radius: 12px;
+    background: var(--green); color: #fff;
+    border: none; cursor: pointer; font-size: 14px; font-weight: 700; font-family: inherit;
+    transition: opacity .2s;
+  }
+  .btn-save:hover { opacity: .9; }
+
+  /* TOAST */
+  .toast-wrap {
+    position: fixed; top: 80px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999; pointer-events: none;
+    display: flex; flex-direction: column; gap: 8px; align-items: center;
+  }
+  .toast {
+    background: #1a1917; color: #fff;
+    padding: 10px 18px; border-radius: 99px;
+    font-size: 13px; font-weight: 600;
+    opacity: 0; animation: toastIn .3s forwards;
+    white-space: nowrap;
+  }
+  .toast.ok { background: var(--green); }
+  .toast.err { background: var(--red); }
+  @keyframes toastIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+
+  /* LOADING */
+  .loader {
+    position: fixed; inset: 0; background: #fff;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 16px;
+    z-index: 9999;
+  }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--green-light);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* BOTTOM NAV */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(255,255,255,.96);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-around;
+    padding: 10px 8px 24px; z-index: 100;
+  }
+  .nav-btn {
+    background: none; border: none; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 3px; padding: 4px 16px; border-radius: 12px;
+    color: #aaa; font-size: 10px; font-weight: 600;
+    font-family: inherit; transition: color .15s;
+  }
+  .nav-btn.active { color: var(--green); }
+  .nav-btn .material-symbols-outlined { font-size: 22px; }
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div class="loader" id="loader">
+  <div class="spinner"></div>
+  <div style="font-family:Manrope;font-size:14px;color:#6b6a64">Cargando...</div>
+</div>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="login-screen" style="display:none">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="icon">⚕</div>
+      <h1>Rehactiva</h1>
+      <p>Portal de Terapeutas</p>
+    </div>
+    <div class="login-field">
+      <label>Correo electrónico</label>
+      <input type="email" id="login-email" placeholder="tu@correo.com" autocomplete="email">
+    </div>
+    <div class="login-field">
+      <label>Contraseña</label>
+      <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Ingresar</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">Rehactiva</span>
+      <span class="topbar-badge" id="th-badge">Terapeuta</span>
+    </div>
+    <div class="topbar-right">
+      <div class="therapist-avatar" id="th-avatar">G</div>
+      <button class="logout-btn" onclick="doLogout()" title="Cerrar sesión">
+        <span class="material-symbols-outlined" style="font-size:20px">logout</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- FECHA NAV -->
+    <div class="date-nav">
+      <button class="date-nav-btn" id="prev-day-btn" onclick="changeDay(-1)">
+        <span class="material-symbols-outlined" style="font-size:20px">chevron_left</span>
+      </button>
+      <div class="date-nav-center">
+        <div class="date-nav-day" id="date-day-label">Hoy</div>
+        <div class="date-nav-full" id="date-full-label">—</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="today-btn" onclick="goToday()" id="today-btn" style="display:none">Hoy</button>
+        <button class="date-nav-btn" onclick="changeDay(1)">
+          <span class="material-symbols-outlined" style="font-size:20px">chevron_right</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="num" id="stat-total" style="color:var(--text)">0</div>
+        <div class="lbl">Citas</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="stat-conf" style="color:var(--green)">0</div>
+        <div class="lbl">Asistidas</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="stat-sess" style="color:var(--orange)">0</div>
+        <div class="lbl">Sin sesión</div>
+      </div>
+    </div>
+
+    <!-- CITAS -->
+    <div class="section-title" id="citas-section-title">Agenda del día</div>
+    <div id="citas-list"></div>
+
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="showScreen('agenda')">
+      <span class="material-symbols-outlined">calendar_today</span>Agenda
+    </button>
+    <button class="nav-btn" onclick="showScreen('historial')">
+      <span class="material-symbols-outlined">history</span>Historial
+    </button>
+    <button class="nav-btn" onclick="showScreen('perfil')">
+      <span class="material-symbols-outlined">person</span>Perfil
+    </button>
+  </nav>
+
+</div>
+
+<!-- MODAL SESIÓN -->
+<div class="modal-overlay" id="session-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="sess-title">Registrar sesión</div>
+    <div class="modal-sub" id="sess-sub">Completa los datos</div>
+
+    <div class="eva-section">
+      <div class="eva-label">
+        <span>Dolor ANTES</span>
+        <span class="eva-value" id="eva-before-val" style="color:var(--red)">5</span>
+      </div>
+      <div class="eva-btns" id="eva-before-btns"></div>
+      <div class="eva-hint"><span>Sin dolor</span><span>Máximo</span></div>
+    </div>
+
+    <div class="eva-section">
+      <div class="eva-label">
+        <span>Dolor DESPUÉS</span>
+        <span class="eva-value" id="eva-after-val" style="color:var(--green)">3</span>
+      </div>
+      <div class="eva-btns" id="eva-after-btns"></div>
+      <div class="eva-hint"><span>Sin dolor</span><span>Máximo</span></div>
+    </div>
+
+    <div class="field-group">
+      <label>Técnica utilizada</label>
+      <select id="sess-type">
+        <option>Fisioterapia general</option>
+        <option>Kinesioterapia</option>
+        <option>Terapia manual</option>
+        <option>Electroterapia</option>
+        <option>Ultrasonido terapéutico</option>
+        <option>Masoterapia</option>
+        <option>Ejercicio terapéutico</option>
+        <option>Tracción lumbar/cervical</option>
+        <option>Vendaje funcional</option>
+        <option>Punción seca</option>
+        <option>Crioterapia</option>
+        <option>Termoterapia</option>
+      </select>
+    </div>
+
+    <div class="field-group">
+      <label>¿Qué se realizó? <span class="required-star">*</span></label>
+      <textarea id="sess-note" placeholder="Ej: Masaje descontracturante zona lumbar, electroterapia 10min, ejercicios de estabilización core..."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel-modal" onclick="closeModal()">Cancelar</button>
+      <button class="btn-save" id="save-btn" onclick="saveSession()">Guardar sesión</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+const SURL = 'https://cgilpnjgrnxqmrkhaxkx.supabase.co';
+const SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnaWxwbmpncm54cW1ya2hheGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNjUzNDcsImV4cCI6MjA5MDg0MTM0N30.xuVP5uq5DxOoEX36HbdSASDkIwKs0dTd7xoQalc-CqI';
+const supa = supabase.createClient(SURL, SKEY);
+
+// ── ESTADO ──
+let currentUser = null;
+let currentTherapist = null;
+let currentDate = new Date();
+let appointments = [];
+let patients = [];
+let pendingAppt = null;
+let evaBeforeVal = 5;
+let evaAfterVal = 3;
+
+const DAYS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+function fmtDate(d) {
+  return d.getFullYear() + '-'
+    + String(d.getMonth()+1).padStart(2,'0') + '-'
+    + String(d.getDate()).padStart(2,'0');
+}
+
+// ── INIT ──
+async function init() {
+  const { data: { session } } = await supa.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    await loadTherapist();
+  } else {
+    showLogin();
+  }
+  document.getElementById('loader').style.display = 'none';
+}
+
+function showLogin() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').classList.remove('active');
+}
+
+async function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('active');
+  updateDateLabel();
+  await loadData();
+}
+
+// ── AUTH ──
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-err');
+  const btn = document.getElementById('login-btn');
+  if (!email || !pass) { err.textContent = 'Ingresa tu correo y contraseña.'; return; }
+  err.textContent = '';
+  btn.textContent = 'Ingresando...'; btn.disabled = true;
+  const { data, error } = await supa.auth.signInWithPassword({ email, password: pass });
+  if (error) {
+    err.textContent = 'Correo o contraseña incorrectos.';
+    btn.textContent = 'Ingresar'; btn.disabled = false;
+    return;
+  }
+  currentUser = data.user;
+  await loadTherapist();
+  btn.textContent = 'Ingresar'; btn.disabled = false;
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') doLogin();
+});
+
+async function doLogout() {
+  await supa.auth.signOut();
+  currentUser = null; currentTherapist = null;
+  showLogin();
+}
+
+// ── TERAPEUTA ──
+async function loadTherapist() {
+  if (!currentUser) return;
+  const { data } = await supa.from('therapists').select('*').eq('email', currentUser.email).maybeSingle();
+  if (!data) {
+    document.getElementById('login-err').textContent = 'Tu cuenta no está vinculada a ningún terapeuta. Contacta al administrador.';
+    document.getElementById('login-screen').style.display = 'flex';
+    return;
+  }
+  currentTherapist = data;
+  document.getElementById('th-badge').textContent = data.spec || 'Terapeuta';
+  document.getElementById('th-avatar').textContent = data.initials || data.name.charAt(0);
+  await showApp();
+}
+
+// ── DATOS ──
+async function loadData() {
+  if (!currentTherapist) return;
+  const todayStr = fmtDate(new Date());
+  // Cargar citas desde hoy en adelante para este terapeuta
+  const [apptRes, patRes] = await Promise.all([
+    supa.from('appointments')
+      .select('*,patients(name,diag,tel,cedula)')
+      .eq('therapist_id', currentTherapist.id)
+      .gte('date', todayStr)
+      .order('date').order('hour'),
+    supa.from('patients').select('id,name,diag,tel,cedula,done,sessions,status')
+  ]);
+  appointments = (apptRes.data || []).map(r => ({
+    id: r.id, date: r.date, hour: r.hour,
+    type: r.type || 'Fisioterapia', status: r.status || 'pend',
+    patientId: r.patient_id, note: r.note || '',
+    patientName: r.patients ? r.patients.name : null,
+    patientDiag: r.patients ? r.patients.diag : null,
+    hasSession: false
+  }));
+  patients = patRes.data || [];
+
+  // Marcar citas con sesión registrada
+  const { data: sessions } = await supa.from('session_log')
+    .select('patient_id,date').eq('therapist_id' , currentTherapist.id).catch(() => ({ data: [] }));
+  // session_log puede no tener therapist_id — hacer fallback
+  const { data: allSessions } = await supa.from('session_log').select('patient_id,date');
+  const sessSet = new Set((allSessions || []).map(s => s.patient_id + '|' + s.date));
+  appointments.forEach(a => { a.hasSession = sessSet.has(a.patientId + '|' + a.date); });
+
+  renderAgenda();
+}
+
+// ── AGENDA ──
+function renderAgenda() {
+  const ds = fmtDate(currentDate);
+  const dayAppts = appointments.filter(a => a.date === ds).sort((a,b) => a.hour - b.hour);
+
+  // Stats
+  const conf = dayAppts.filter(a => a.status === 'conf');
+  const sinSesion = conf.filter(a => !a.hasSession);
+  document.getElementById('stat-total').textContent = dayAppts.length;
+  document.getElementById('stat-conf').textContent = conf.length;
+  document.getElementById('stat-sess').textContent = sinSesion.length;
+
+  // Label de fecha
+  const isToday = ds === fmtDate(new Date());
+  document.getElementById('citas-section-title').textContent =
+    isToday ? 'Mis citas de hoy' : 'Mis citas del día';
+
+  const list = document.getElementById('citas-list');
+  if (!dayAppts.length) {
+    list.innerHTML = `<div class="empty-state">
+      <div class="icon"><span class="material-symbols-outlined" style="font-size:48px">event_available</span></div>
+      <h3>Sin citas este día</h3>
+      <p>No tienes citas programadas para esta fecha.</p>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = dayAppts.map(a => {
+    const pt = patients.find(p => String(p.id) === String(a.patientId));
+    const name = pt ? pt.name : (a.patientName || 'Paciente');
+    const diag = pt ? (pt.diag || a.type) : a.type;
+    const initials = name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+    const statusLabels = { conf: 'Confirmada', pend: 'Pendiente', noas: 'No asistió' };
+    const pillClass = { conf: 'pill-conf', pend: 'pill-pend', noas: 'pill-noas' };
+
+    const sesionBtn = a.status === 'conf'
+      ? `<button class="btn-action ${a.hasSession ? 'btn-sesion-ok' : 'btn-sesion-pendiente'}"
+          onclick="openSession('${a.id}')">
+          <span class="material-symbols-outlined">${a.hasSession ? 'check_circle' : 'assignment'}</span>
+          ${a.hasSession ? 'Sesión ok' : 'Completar sesión'}
+        </button>`
+      : '';
+
+    return `<div class="cita-card ${a.status}" id="cita-${a.id}">
+      <div class="cita-header">
+        <div>
+          <div class="cita-hora">${a.hour}:00</div>
+          <div class="cita-type">${a.type}</div>
+        </div>
+        <span class="status-pill ${pillClass[a.status] || 'pill-pend'}">${statusLabels[a.status] || 'Pendiente'}</span>
+      </div>
+      <div class="cita-patient">
+        <div class="patient-avatar">${initials}</div>
+        <div>
+          <div class="patient-name">${name}</div>
+          <div class="patient-diag">${diag || '—'}</div>
+        </div>
+      </div>
+      <div class="cita-actions">
+        ${sesionBtn}
+        <button class="btn-action btn-ciclo" onclick="cycleStatus('${a.id}')">
+          <span class="material-symbols-outlined" style="font-size:16px">sync</span>
+          Estado
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── NAVEGACIÓN FECHA ──
+function changeDay(delta) {
+  const newDate = new Date(currentDate);
+  newDate.setDate(newDate.getDate() + delta);
+  const todayStr = fmtDate(new Date());
+  // No permitir ir antes de hoy
+  if (fmtDate(newDate) < todayStr) return;
+  currentDate = newDate;
+  updateDateLabel();
+  renderAgenda();
+}
+
+function goToday() {
+  currentDate = new Date();
+  updateDateLabel();
+  renderAgenda();
+}
+
+function updateDateLabel() {
+  const ds = fmtDate(currentDate);
+  const todayStr = fmtDate(new Date());
+  const isToday = ds === todayStr;
+  const dn = DAYS[currentDate.getDay()];
+  const mn = MONTHS[currentDate.getMonth()];
+  document.getElementById('date-day-label').textContent = isToday ? 'Hoy' : dn;
+  document.getElementById('date-full-label').textContent =
+    `${dn} ${currentDate.getDate()} de ${mn} ${currentDate.getFullYear()}`;
+  document.getElementById('prev-day-btn').disabled = isToday;
+  document.getElementById('today-btn').style.display = isToday ? 'none' : 'inline-block';
+}
+
+// ── CICLO ESTADO ──
+async function cycleStatus(id) {
+  const a = appointments.find(x => x.id === id);
+  if (!a) return;
+  const estados = ['conf', 'pend', 'noas'];
+  const prev = a.status;
+  a.status = estados[(estados.indexOf(a.status)+1) % 3];
+  renderAgenda();
+  if (typeof id === 'string') {
+    const { error } = await supa.from('appointments').update({ status: a.status }).eq('id', id);
+    if (error) { toast('Error al actualizar estado', true); a.status = prev; renderAgenda(); }
+    else {
+      const labels = { conf: '✓ Confirmada', pend: 'Pendiente', noas: 'No asistió' };
+      toast(labels[a.status]);
+      if (a.status === 'conf') setTimeout(() => openSession(id), 400);
+    }
+  }
+}
+
+// ── MODAL SESIÓN ──
+function openSession(id) {
+  const a = appointments.find(x => x.id === id);
+  if (!a) return;
+  pendingAppt = a;
+  const pt = patients.find(p => String(p.id) === String(a.patientId));
+  const name = pt ? pt.name.split(' ').slice(0,2).join(' ') : 'Paciente';
+
+  // Buscar sesión existente
+  document.getElementById('sess-title').textContent = (a.hasSession ? 'Editar sesión — ' : 'Registrar sesión — ') + name;
+  document.getElementById('sess-sub').textContent = a.type + ' · ' + a.date + ' · ' + a.hour + ':00';
+
+  evaBeforeVal = 5; evaAfterVal = 3;
+  document.getElementById('sess-note').value = '';
+  renderEva();
+  document.getElementById('session-modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('session-modal').classList.remove('open');
+  pendingAppt = null;
+}
+
+function renderEva() {
+  document.getElementById('eva-before-val').textContent = evaBeforeVal;
+  document.getElementById('eva-after-val').textContent = evaAfterVal;
+
+  ['before','after'].forEach(type => {
+    const val = type === 'before' ? evaBeforeVal : evaAfterVal;
+    const container = document.getElementById('eva-'+type+'-btns');
+    container.innerHTML = '';
+    for (let i = 0; i <= 10; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'eva-btn' + (i === val ? ' selected-'+type : '');
+      btn.textContent = i;
+      btn.onclick = () => {
+        if (type === 'before') evaBeforeVal = i;
+        else evaAfterVal = i;
+        renderEva();
+      };
+      container.appendChild(btn);
+    }
+  });
+}
+
+async function saveSession() {
+  if (!pendingAppt) return;
+  const note = document.getElementById('sess-note').value.trim();
+  const type = document.getElementById('sess-type').value;
+  if (!note) {
+    document.getElementById('sess-note').style.borderColor = 'var(--red)';
+    document.getElementById('sess-note').focus();
+    toast('Describe brevemente qué se realizó', true);
+    return;
+  }
+  document.getElementById('sess-note').style.borderColor = '';
+
+  const btn = document.getElementById('save-btn');
+  btn.textContent = 'Guardando...'; btn.disabled = true;
+
+  const appt = pendingAppt;
+
+  // Buscar si ya existe sesión ese día
+  const { data: existing } = await supa.from('session_log')
+    .select('id').eq('patient_id', appt.patientId).eq('date', appt.date).maybeSingle();
+
+  let error;
+  if (existing) {
+    const r = await supa.from('session_log').update({
+      type, hour: appt.hour+':00',
+      pain_before: evaBeforeVal, pain_after: evaAfterVal, note
+    }).eq('id', existing.id);
+    error = r.error;
+  } else {
+    const r = await supa.from('session_log').insert({
+      patient_id: appt.patientId,
+      date: appt.date, type,
+      hour: appt.hour+':00',
+      status: 'asistió',
+      pain_before: evaBeforeVal,
+      pain_after: evaAfterVal,
+      note
+    });
+    error = r.error;
+  }
+
+  btn.textContent = 'Guardar sesión'; btn.disabled = false;
+
+  if (error) { toast('Error al guardar: ' + error.message, true); return; }
+
+  // Actualizar en memoria
+  appt.hasSession = true;
+  closeModal();
+  renderAgenda();
+  toast('✓ Sesión guardada en historial clínico');
+}
+
+// ── TOAST ──
+function toast(msg, isErr = false) {
+  const wrap = document.getElementById('toast-wrap');
+  const el = document.createElement('div');
+  el.className = 'toast ' + (isErr ? 'err' : 'ok');
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(() => el.remove(), 300); }, 3000);
+}
+
+// ── SCREENS ──
+function showScreen(screen) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  // Por ahora solo agenda — las otras pantallas se construyen después
+  if (screen !== 'agenda') toast('Próximamente disponible');
+  else {
+    updateDateLabel();
+    renderAgenda();
+  }
+}
+
+// Cerrar modal al tocar fuera
+document.getElementById('session-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+init();
+</script>
+</body>
+</html>
